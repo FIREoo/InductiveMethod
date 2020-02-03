@@ -10,20 +10,25 @@ using Emgu.CV.CvEnum;
 using Point = System.Drawing.Point;
 namespace Wpf_InductiveMethod
 {
-    class InteractObject
+    public class InteractObject
     {
         public enum Type
         {
             circle = 0,
             square = 1
         }
-
+        public int index = -1;
         public Type Shape = Type.circle;
         public Point Center = new Point();
         public int Radius = 30;
-       public MCvScalar Color { get; set; } = new MCvScalar(150, 150, 150);
+        public MCvScalar Color { get; set; } = new MCvScalar(150, 150, 150);
 
         private bool _isPick = false;
+
+        public InteractObject(int i)
+        {
+            index = i;
+        }
         public bool isPick
         {
             get { return _isPick; }
@@ -97,6 +102,12 @@ namespace Wpf_InductiveMethod
 
     }
 
+    public class GenerationInfo
+    {
+        public List<InteractObject> obj = new List<InteractObject>();
+        public Trajectory trajectory;
+    }
+
 
     public class Trajectory
     {
@@ -109,35 +120,66 @@ namespace Wpf_InductiveMethod
         {
             Absolute.Clear();
             Relative.Clear();
+            Abs_keyCount.Clear();
+            Rel_keyCount.Clear();
         }
 
+        /// <summary>用於加入Absolute path，</summary>
         public void AddPoint(Point P)
         {
             Absolute.Add(P);
             Abs_keyCount.Add(0);
+            Rel_keyCount.Add(0);
         }
+        /// <summary>用於Relative path，要等結束才會知道relative path</summary>
+        public void AddPointDone(Point lastPoint)
+        {
+            for (int i = 0; i < Absolute.Count(); i++)
+            {
+                Point Pr = new Point(Absolute[i].X - lastPoint.X, Absolute[i].Y - lastPoint.Y);
+                Relative.Add(Pr);
+            }
+        }
+
         public void resetKeyCount()
         {
             for (int c = 0; c < Abs_keyCount.Count; c++)
+            {
                 Abs_keyCount[c] = 0;
+                Rel_keyCount[c] = 0;
+            }
         }
-        public void drawOn(IInputOutputArray img, MCvScalar Color, int Radius = 3)
+        public void drawOn(IInputOutputArray img, Point lastPoint, MCvScalar Color, int Radius = 3)
         {
             for (int i = 0; i < Absolute.Count(); i++)
             {
                 CvInvoke.Circle(img, Absolute[i], Radius, Color, -1);
             }
+            for (int i = 0; i < Relative.Count(); i++)
+            {
+                Point Pr = new Point(Relative[i].X + lastPoint.X, Relative[i].Y + lastPoint.Y);
+                CvInvoke.Circle(img, Pr, Radius + 2, Color, 1);
+            }
+
         }
+
         /// <summary>
         /// draw if >= threshold
         /// </summary>
-
-        public void drawKeyOn(int threshold, IInputOutputArray img, MCvScalar Color, int Radius = 3)
+        public void drawKeyOn(int threshold, IInputOutputArray img, Point lastPoint, MCvScalar Color, int Radius = 3)
         {
             for (int i = 0; i < Absolute.Count(); i++)
             {
                 if (Abs_keyCount[i] >= threshold)
                     CvInvoke.Circle(img, Absolute[i], Radius, Color, -1);
+            }
+            for (int i = 0; i < Relative.Count(); i++)
+            {
+                if (Rel_keyCount[i] >= threshold)
+                {
+                    Point Pr = new Point(Relative[i].X + lastPoint.X, Relative[i].Y + lastPoint.Y);
+                    CvInvoke.Circle(img, Pr, Radius + 2, Color, 1);
+                }
             }
         }
 
@@ -155,12 +197,12 @@ namespace Wpf_InductiveMethod
         {
             return int.Parse(str);
         }
-        static public int Distanse(Point P1 ,Point P2)
+        static public int Distanse(Point P1, Point P2)
         {
             int dx = P2.X - P1.X;
             int dy = P2.Y - P1.Y;
 
-            double D = Math.Sqrt((dx * dx) +(dy * dy));
+            double D = Math.Sqrt((dx * dx) + (dy * dy));
             return (int)D;
         }
     }

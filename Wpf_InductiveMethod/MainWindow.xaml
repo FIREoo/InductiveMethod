@@ -7,14 +7,49 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="800" Width="1000">
     <Grid Margin="0,0,0,0">
+        <ListView x:Name="LV_trajectoryInfo" x:FieldModifier="public" HorizontalAlignment="Left" Height="427" Margin="615,248,0,0" VerticalAlignment="Top" Width="354" FontSize="16">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn  Header="Object #" Width="80" >
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid Background="Transparent">
+                                    <TextBlock Text="{Binding Object}" Foreground="{Binding Color1}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+
+                    <GridViewColumn Header="Gen #" Width="80">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid Background="Transparent">
+                                    <TextBlock Text="{Binding Gen}" Foreground="{Binding Color2}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+
+                </GridView>
+            </ListView.View>
+        </ListView>
         <Image x:Name="image1" HorizontalAlignment="Left" Height="600" Margin="10,10,0,0" VerticalAlignment="Top" Width="600" MouseLeftButtonDown="Image1_MouseLeftButtonDown" MouseLeftButtonUp="Image1_MouseLeftButtonUp" MouseMove="Image1_MouseMove"/>
-        <Button Content="Start" HorizontalAlignment="Left" Margin="615,10,0,0" VerticalAlignment="Top" Width="144" Click="Button_start_Click" Height="145" FontSize="16"/>
-        <Button x:Name="btn_replay" Content="replay" HorizontalAlignment="Left" Margin="764,10,0,0" VerticalAlignment="Top" Width="75" Height="145" Click="Btn_replay_Click" FontSize="16"/>
-        <Button x:Name="btn_check" Content="check" HorizontalAlignment="Left" Margin="615,175,0,0" VerticalAlignment="Top" Width="144" Height="36" Click="Btn_check_Click" FontSize="16"/>
-        <TextBlock x:Name="tb_checkNum" HorizontalAlignment="Left" Margin="764,182,0,0" TextWrapping="Wrap" Text="Gen : 0" VerticalAlignment="Top" FontSize="16"/>
-        <TextBox x:Name="tb_replay_Gen" HorizontalAlignment="Left" Height="23" Margin="844,10,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="57" TextAlignment="Center" VerticalContentAlignment="Center" FontSize="16"/>
-        <Button x:Name="btn_replay_all" Content="replay all" HorizontalAlignment="Left" Margin="844,112,0,0" VerticalAlignment="Top" Width="75" Height="43" FontSize="16" Click="Btn_replay_all_Click"/>
+        <Button x:Name="btn_restart" Content="reStart" HorizontalAlignment="Left" Margin="615,10,0,0" VerticalAlignment="Top" Width="144" Click="Button_start_Click" Height="43" FontSize="16"/>
+        <Button x:Name="btn_replay" Content="replay&#xD;&#xA;select" HorizontalAlignment="Left" Margin="764,10,0,0" VerticalAlignment="Top" Width="90" Height="43" Click="Btn_replay_Click" FontSize="16"/>
+        <Button x:Name="btn_check" Content="check" HorizontalAlignment="Left" Margin="615,160,0,0" VerticalAlignment="Top" Width="144" Height="36" Click="Btn_check_Click" FontSize="16"/>
+        <TextBlock x:Name="tb_checkNum" HorizontalAlignment="Left" Margin="615,201,0,0" TextWrapping="Wrap" Text="Now Gen : 0" VerticalAlignment="Top" FontSize="16"/>
+        <Button x:Name="btn_replay_all" Content="replay all" HorizontalAlignment="Left" Margin="859,10,0,0" VerticalAlignment="Top" Width="90" Height="43" FontSize="16" Click="Btn_replay_all_Click"/>
         <Button x:Name="btn_countKeyPoint" Content="Count key point" HorizontalAlignment="Left" Margin="844,168,0,0" VerticalAlignment="Top" Width="111" Height="43" Click="Btn_countKeyPoint_Click" FontSize="14"/>
+        <Button x:Name="btn_remove" Content="remove" HorizontalAlignment="Left" Margin="844,216,0,0" VerticalAlignment="Top" Width="111" Click="Btn_remove_Click"/>
+        <Button x:Name="but_clearPath" Content="Clear Path" HorizontalAlignment="Left" Margin="615,98,0,0" VerticalAlignment="Top" Width="144" Height="43" Click="But_clearPath_Click"/>
+        <Label Content="notice that one gen one object" HorizontalAlignment="Left" Margin="615,680,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btn_clearImage" Content="Clear Image" HorizontalAlignment="Left" Margin="764,58,0,0" VerticalAlignment="Top" Width="185" Height="43" Click="Btn_clearImage_Click"/>
+        <Button x:Name="btn_resetPos" Content="reset position" HorizontalAlignment="Left" Margin="615,58,0,0" VerticalAlignment="Top" Width="144" Height="35" Click="Btn_resetPos_Click"/>
 
     </Grid>
 </Window>
