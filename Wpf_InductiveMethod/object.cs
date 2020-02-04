@@ -10,6 +10,67 @@ using Emgu.CV.CvEnum;
 using Point = System.Drawing.Point;
 namespace Wpf_InductiveMethod
 {
+    public class DemoTask
+    {
+        public List<Generation> generations = new List<Generation>();
+        public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
+        public DemoTask(List<InteractObject> demoObject)
+        {
+            DemoObject = demoObject;
+            generations = new List<Generation>();
+            generations.Add(new Generation());
+        }
+        //object function
+        public void drawObjectOn(IInputOutputArray mat)
+        {
+            foreach (InteractObject obj in DemoObject)
+                obj.drawOn(mat);
+        }
+        public void ConfirmGeneration()
+        {
+            ConfirmSegment();
+            generations.Add(new Generation());
+        }
+        public void ConfirmSegment()
+        {
+            Segment addin = new Segment(DemoObject.Count());
+            for (int i = 0; i < DemoObject.Count(); i++)
+            {
+                addin.objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i));
+                for (int p = 0; p < DemoObject[i].thisRoundPath.Count(); p++)
+                {
+                    addin.objectTrajectoryPacks[i].AbsoluteTrajectory.AddPoint(DemoObject[i].thisRoundPath[p]);
+                    //要以起始點為原點  不能是終點
+                    Point Pr = new Point(DemoObject[i].thisRoundPath[p].X - DemoObject[i].thisRoundPath[0].X, DemoObject[i].thisRoundPath[p].Y - DemoObject[i].thisRoundPath[0].Y);
+                    addin.objectTrajectoryPacks[i].RelativeTrajectory.AddPoint(Pr);
+                }
+
+                DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
+            }
+            generations.Last().segments.Add(addin);
+
+        }
+
+
+    }
+    public class Generation
+    {
+        public List<Segment> segments = new List<Segment>();
+     
+    }
+
+  
+    public class Segment
+    {
+        public List<ObjectTrajectoryPack> objectTrajectoryPacks = new List<ObjectTrajectoryPack>();
+        public Segment(int objectCount)
+        {
+            for (int i = 0; i < objectCount; i++)
+                objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i));
+        }
+    }
+
+
     public class InteractObject
     {
         public enum Type
@@ -19,7 +80,7 @@ namespace Wpf_InductiveMethod
         }
         public int index = -1;
         public Type Shape = Type.circle;
-        public Point Center = new Point();
+        public Point Position = new Point();
         public int Radius = 30;
         public MCvScalar Color { get; set; } = new MCvScalar(150, 150, 150);
 
@@ -44,8 +105,8 @@ namespace Wpf_InductiveMethod
         }
         public bool isInArea(Point point)
         {
-            int distX = (point.X) - (Center.X);
-            int distY = (point.Y) - (Center.Y);
+            int distX = (point.X) - (Position.X);
+            int distY = (point.Y) - (Position.Y);
 
             if (Shape == Type.circle)
             {
@@ -57,7 +118,7 @@ namespace Wpf_InductiveMethod
             }
             else if (Shape == Type.square)
             {
-                if (point.X < Center.X + Radius / 2 && point.X > Center.X - Radius / 2 && point.Y > Center.Y - Radius / 2 && point.Y < Center.Y + Radius / 2)
+                if (point.X < Position.X + Radius / 2 && point.X > Position.X - Radius / 2 && point.Y > Position.Y - Radius / 2 && point.Y < Position.Y + Radius / 2)
                     return true;
                 else
                     return false;
@@ -72,65 +133,71 @@ namespace Wpf_InductiveMethod
         }
         public void drawOn(IInputOutputArray img)
         {
+
             if (Shape == Type.circle)
             {
-                CvInvoke.Circle(img, Center, Radius, Color, -1);
+                CvInvoke.Circle(img, Position, Radius, Color, -1);
                 if (isPick)
-                    CvInvoke.Circle(img, Center, Radius, new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
+                    CvInvoke.Circle(img, Position, Radius, new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
             }
             else if (Shape == Type.square)
             {
-                CvInvoke.Rectangle(img, new System.Drawing.Rectangle(Center.X - Radius / 2, Center.Y - Radius / 2, Radius, Radius), Color, -1);
+                CvInvoke.Rectangle(img, new System.Drawing.Rectangle(Position.X - Radius / 2, Position.Y - Radius / 2, Radius, Radius), Color, -1);
                 if (isPick)
                 {
-                    CvInvoke.Line(img, new Point(Center.X - Radius / 2, Center.Y - Radius / 2), new Point(Center.X - Radius / 2, Center.Y + Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
-                    CvInvoke.Line(img, new Point(Center.X + Radius / 2, Center.Y + Radius / 2), new Point(Center.X - Radius / 2, Center.Y + Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
-                    CvInvoke.Line(img, new Point(Center.X + Radius / 2, Center.Y + Radius / 2), new Point(Center.X + Radius / 2, Center.Y - Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
-                    CvInvoke.Line(img, new Point(Center.X - Radius / 2, Center.Y - Radius / 2), new Point(Center.X + Radius / 2, Center.Y - Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
+                    CvInvoke.Line(img, new Point(Position.X - Radius / 2, Position.Y - Radius / 2), new Point(Position.X - Radius / 2, Position.Y + Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
+                    CvInvoke.Line(img, new Point(Position.X + Radius / 2, Position.Y + Radius / 2), new Point(Position.X - Radius / 2, Position.Y + Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
+                    CvInvoke.Line(img, new Point(Position.X + Radius / 2, Position.Y + Radius / 2), new Point(Position.X + Radius / 2, Position.Y - Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
+                    CvInvoke.Line(img, new Point(Position.X - Radius / 2, Position.Y - Radius / 2), new Point(Position.X + Radius / 2, Position.Y - Radius / 2), new MCvScalar(Color.V0 + 50, Color.V1 + 50, Color.V2 + 50), 3);
                 }
-
             }
+            CvInvoke.PutText(img, index.ToString(), Position, FontFace.HersheySimplex, 0.5, new MCvScalar(0, 0, 0), 2);
+
         }
 
         //--Trajectory--//
-        public List<Trajectory> trajectory = new List<Trajectory>();
+        //public List<Trajectory> trajectory = new List<Trajectory>();
 
-        public void IniTrajectory()
-        {
-
-        }
+        /// <summary>用於儲存目前圖上的路徑</summary>
+        public List<Point> thisRoundPath = new List<Point>();
 
     }
 
-    public class GenerationInfo
+    public class ObjectTrajectoryPack
     {
-        public List<InteractObject> obj = new List<InteractObject>();
-        public Trajectory trajectory;
+        public int ObjectIndex = -1;
+        public ObjectTrajectoryPack(int index)
+        {
+            ObjectIndex = index;
+        }
+        public Trajectory AbsoluteTrajectory = new Trajectory();
+        public Trajectory RelativeTrajectory = new Trajectory();
     }
-
-
     public class Trajectory
     {
-        public List<Point> Absolute = new List<Point>();
-        public List<int> Abs_keyCount = new List<int>();
-        public List<Point> Relative = new List<Point>();
-        public List<int> Rel_keyCount = new List<int>();
+        private List<Point> PathList = new List<Point>();
+        private List<int> PathKeyCount = new List<int>();
 
+        public void AddPoint(Point point)
+        {
+            PathList.Add(point);
+            PathKeyCount.Add(0);
+        }
         public void Clear()
         {
-            Absolute.Clear();
-            Relative.Clear();
-            Abs_keyCount.Clear();
-            Rel_keyCount.Clear();
+            PathList.Clear();
+            PathKeyCount.Clear();
         }
 
-        /// <summary>用於加入Absolute path，</summary>
-        public void AddPoint(Point P)
+        public void DrawOn(IInputOutputArray img, Point RelPoint, MCvScalar Color,  int Radius = 3, int thickness = -1)
         {
-            Absolute.Add(P);
-            Abs_keyCount.Add(0);
-            Rel_keyCount.Add(0);
+            foreach (Point P in PathList)
+            {
+                Point Pr = new Point(P.X + RelPoint.X, P.Y + RelPoint.Y);
+                CvInvoke.Circle(img, Pr, Radius, Color, thickness);
+            }
         }
+        /*
         /// <summary>用於Relative path，要等結束才會知道relative path</summary>
         public void AddPointDone(Point lastPoint)
         {
@@ -163,9 +230,7 @@ namespace Wpf_InductiveMethod
 
         }
 
-        /// <summary>
-        /// draw if >= threshold
-        /// </summary>
+        /// <summary>draw if >= threshold</summary>
         public void drawKeyOn(int threshold, IInputOutputArray img, Point lastPoint, MCvScalar Color, int Radius = 3)
         {
             for (int i = 0; i < Absolute.Count(); i++)
@@ -182,6 +247,9 @@ namespace Wpf_InductiveMethod
                 }
             }
         }
+        */
+
+
 
     }
 
