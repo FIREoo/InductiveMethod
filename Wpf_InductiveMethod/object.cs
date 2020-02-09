@@ -8,6 +8,8 @@ using Emgu.CV.Structure;
 using Emgu.CV.CvEnum;
 
 using Point = System.Drawing.Point;
+using System.Diagnostics;
+
 namespace Wpf_InductiveMethod
 {
     public class DemoTask
@@ -28,27 +30,63 @@ namespace Wpf_InductiveMethod
         }
         public void ConfirmGeneration()
         {
-            ConfirmSegment();
+            // ConfirmSegment();
             generations.Add(new Generation());
         }
         public void ConfirmSegment()
         {
-            Segment addin = new Segment(DemoObject.Count());
+            Segment addin = null;
+            int interactObjectIndex = -1;
             for (int i = 0; i < DemoObject.Count(); i++)
             {
-                addin.objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i));
+                if (DemoObject[i].thisRoundObjectIndex != -1)
+                {
+                    addin = new Segment(DemoObject[i].thisRoundObjectIndex, DemoObject.Count());
+                    interactObjectIndex = DemoObject[i].thisRoundObjectIndex;
+                    break;
+                }
+            }
+
+            if (addin == null || interactObjectIndex == -1)
+                Trace.WriteLine("Segment 裡面的 thisRoundObjectIndex 不該都為-1");
+
+            //絕對路徑 各加各的
+            for (int i = 0; i < DemoObject.Count(); i++)
+            {
                 for (int p = 0; p < DemoObject[i].thisRoundPath.Count(); p++)
                 {
                     addin.objectTrajectoryPacks[i].AbsoluteTrajectory.AddPoint(DemoObject[i].thisRoundPath[p]);
-                    //要以起始點為原點  不能是終點
-                    Point Pr = new Point(DemoObject[i].thisRoundPath[p].X - DemoObject[i].thisRoundPath[0].X, DemoObject[i].thisRoundPath[p].Y - DemoObject[i].thisRoundPath[0].Y);
+                }
+            }
+
+            //相對路徑 都只管interact object 的路徑 只是以不同物件為原點 
+            for (int i = 0; i < DemoObject.Count(); i++)
+            {
+                for (int p = 0; p < DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
+                {
+                    //要以自己起始點為原點  不能是自己的終點
+                    Point Pr = new Point(DemoObject[interactObjectIndex].thisRoundPath[p].X - DemoObject[i].thisRoundPath[0].X, DemoObject[interactObjectIndex].thisRoundPath[p].Y - DemoObject[i].thisRoundPath[0].Y);
                     addin.objectTrajectoryPacks[i].RelativeTrajectory.AddPoint(Pr);
                 }
-
-                DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
             }
+
+            //清除 thisRoundPath
+            for (int i = 0; i < DemoObject.Count(); i++)
+                DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
+
             generations.Last().segments.Add(addin);
 
+        }
+
+        public void ZeroAllKeys()
+        {
+            foreach (Generation G in generations)
+                foreach (Segment S in G.segments)
+                    foreach (ObjectTrajectoryPack OTP in S.objectTrajectoryPacks)
+                    {
+                        OTP.AbsoluteTrajectory.ZeroKey();
+                        OTP.RelativeTrajectory.ZeroKey();
+                    }
         }
 
 
@@ -56,17 +94,17 @@ namespace Wpf_InductiveMethod
     public class Generation
     {
         public List<Segment> segments = new List<Segment>();
-     
+
     }
 
-  
+
     public class Segment
     {
         public List<ObjectTrajectoryPack> objectTrajectoryPacks = new List<ObjectTrajectoryPack>();
-        public Segment(int objectCount)
+        public Segment(int interactObjectIndex, int objectCount)
         {
             for (int i = 0; i < objectCount; i++)
-                objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i));
+                objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i, interactObjectIndex));
         }
     }
 
@@ -160,23 +198,28 @@ namespace Wpf_InductiveMethod
 
         /// <summary>用於儲存目前圖上的路徑</summary>
         public List<Point> thisRoundPath = new List<Point>();
+        /// <summary>用於儲存目前圖上的互動物件(注意，一個segment只會有一個互動物件)</summary>
+        public int thisRoundObjectIndex = -1;
 
     }
 
     public class ObjectTrajectoryPack
     {
-        public int ObjectIndex = -1;
-        public ObjectTrajectoryPack(int index)
+        public int OriginObjectIndex = -1;
+        public int InteractObjectIndex = -1;
+
+        public ObjectTrajectoryPack(int originIndex, int interactObjectIndex)
         {
-            ObjectIndex = index;
+            OriginObjectIndex = originIndex;
+            InteractObjectIndex = interactObjectIndex;
         }
         public Trajectory AbsoluteTrajectory = new Trajectory();
         public Trajectory RelativeTrajectory = new Trajectory();
     }
     public class Trajectory
     {
-        private List<Point> PathList = new List<Point>();
-        private List<int> PathKeyCount = new List<int>();
+        public List<Point> PathList = new List<Point>();
+        public List<int> PathKeyCount = new List<int>();
 
         public void AddPoint(Point point)
         {
@@ -188,8 +231,17 @@ namespace Wpf_InductiveMethod
             PathList.Clear();
             PathKeyCount.Clear();
         }
+        public void ClearKey()
+        {
+            PathKeyCount.Clear();
+        }
+        public void ZeroKey()
+        {
+            for (int i = 0; i < PathKeyCount.Count(); i++)
+                PathKeyCount[i] = 0;
+        }
 
-        public void DrawOn(IInputOutputArray img, Point RelPoint, MCvScalar Color,  int Radius = 3, int thickness = -1)
+        public void DrawOn(IInputOutputArray img, Point RelPoint, MCvScalar Color, int Radius = 3, int thickness = -1)
         {
             foreach (Point P in PathList)
             {
@@ -197,59 +249,19 @@ namespace Wpf_InductiveMethod
                 CvInvoke.Circle(img, Pr, Radius, Color, thickness);
             }
         }
-        /*
-        /// <summary>用於Relative path，要等結束才會知道relative path</summary>
-        public void AddPointDone(Point lastPoint)
-        {
-            for (int i = 0; i < Absolute.Count(); i++)
-            {
-                Point Pr = new Point(Absolute[i].X - lastPoint.X, Absolute[i].Y - lastPoint.Y);
-                Relative.Add(Pr);
-            }
-        }
+        /// <summary></summary>
 
-        public void resetKeyCount()
+        public void DrawKeyOn(IInputOutputArray img, Point RelPoint, int thres, MCvScalar Color, int Radius = 3, int thickness = -1)
         {
-            for (int c = 0; c < Abs_keyCount.Count; c++)
+            for (int i = 0; i < PathKeyCount.Count; i++)
             {
-                Abs_keyCount[c] = 0;
-                Rel_keyCount[c] = 0;
-            }
-        }
-        public void drawOn(IInputOutputArray img, Point lastPoint, MCvScalar Color, int Radius = 3)
-        {
-            for (int i = 0; i < Absolute.Count(); i++)
-            {
-                CvInvoke.Circle(img, Absolute[i], Radius, Color, -1);
-            }
-            for (int i = 0; i < Relative.Count(); i++)
-            {
-                Point Pr = new Point(Relative[i].X + lastPoint.X, Relative[i].Y + lastPoint.Y);
-                CvInvoke.Circle(img, Pr, Radius + 2, Color, 1);
-            }
-
-        }
-
-        /// <summary>draw if >= threshold</summary>
-        public void drawKeyOn(int threshold, IInputOutputArray img, Point lastPoint, MCvScalar Color, int Radius = 3)
-        {
-            for (int i = 0; i < Absolute.Count(); i++)
-            {
-                if (Abs_keyCount[i] >= threshold)
-                    CvInvoke.Circle(img, Absolute[i], Radius, Color, -1);
-            }
-            for (int i = 0; i < Relative.Count(); i++)
-            {
-                if (Rel_keyCount[i] >= threshold)
+                if (PathKeyCount[i] >= thres)
                 {
-                    Point Pr = new Point(Relative[i].X + lastPoint.X, Relative[i].Y + lastPoint.Y);
-                    CvInvoke.Circle(img, Pr, Radius + 2, Color, 1);
+                    Point Pr = new Point(PathList[i].X + RelPoint.X, PathList[i].Y + RelPoint.Y);
+                    CvInvoke.Circle(img, Pr, Radius, Color, thickness);
                 }
             }
         }
-        */
-
-
 
     }
 
