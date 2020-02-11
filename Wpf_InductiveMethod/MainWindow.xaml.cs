@@ -131,8 +131,6 @@ namespace Wpf_InductiveMethod
             }
             ImageUpdate();
 
-
-
             handingObj = -1;
         }
         private void Btn_abortThisDemoPath_Click(object sender, RoutedEventArgs e)
@@ -142,6 +140,7 @@ namespace Wpf_InductiveMethod
                 obj.place();
                 obj.thisRoundPath.Clear();
                 obj.thisRoundObjectIndex = -1;
+                obj.thisRoundPath.Add(obj.Position);
             }
         }
         private void Btn_resetPos_Click(object sender, RoutedEventArgs e)
@@ -285,9 +284,39 @@ namespace Wpf_InductiveMethod
                 demoTask.generations[0].segments[0].objectTrajectoryPacks[O].RelativeTrajectory.DrawKeyOn(mat, demoTask.DemoObject[O].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
             }
 
+            //int interactObject = demoTask.generations[0].segments[0].objectTrajectoryPacks[0].InteractObjectIndex;
+
+            //List<Point> path = new List<Point>();
+            //for (int k = 0; k < demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathKeyCount.Count(); k++)
+            //{
+            //    if (demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathKeyCount[k] >= threshold)
+            //    {
+            //        path.Add(demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathList[k]);
+
+            //    }
+            //    //RelativeTrajectory 可能有兩個物件
+            //    else if (demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathKeyCount[k] >= threshold)
+            //    {
+            //        Point Pr = new Point(demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathList[k].X+ demoTask.DemoObject[interactObject].Position.X,
+            //                                                demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathList[k].Y + demoTask.DemoObject[interactObject].Position.Y);
+            //        path.Add(Pr);
+            //    }
+            //    else if (demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathKeyCount[k] >= threshold)
+            //    {
+            //        Point Pr = new Point(demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathList[k].X + demoTask.DemoObject[interactObject].Position.X,
+            //                                               demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathList[k].Y + demoTask.DemoObject[interactObject].Position.Y);
+            //        path.Add(Pr);
+            //    }
+            //}
+            //CvInvoke.Line(mat, demoTask.DemoObject[interactObject].Position, path[0], demoTask.DemoObject[interactObject].Color, 3);
+            //for (int i = 1; i < path.Count(); i++)
+            //{
+            //    CvInvoke.Line(mat, path[i-1], path[i], demoTask.DemoObject[interactObject].Color, 3);
+            //}
+
+
             image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
         }
-
 
 
         private void Btn_countKeyPoint_Click(object sender, RoutedEventArgs e)
