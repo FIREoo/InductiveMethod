@@ -34,18 +34,17 @@ namespace Wpf_InductiveMethod
         {
             InitializeComponent();
             LV_trajectoryInfo.ItemsSource = TrajectoryInfoDataCollection;
-
         }
+        List<int> objectLayerKey = new List<int>();
         private void ImageUpdate()
         {
             mat.SetTo(new byte[600 * 600 * 3]);
-            demoTask.drawObjectOn(mat);
+            demoTask.drawObjectOn(mat, objectLayerKey);
             image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
         }
 
-
-        int handingObj = -1;
-
+        int thisSegmentObj = -1;
+        int handingObject = -1;
 
         ObservableCollection<TrajectoryInfoData> TrajectoryInfoDataCollection = new ObservableCollection<TrajectoryInfoData>();
         //List<string[]> LVinfo = new List<string[]>();//我不知道怎麼取得 select listView text，所以用這個存
@@ -62,16 +61,15 @@ namespace Wpf_InductiveMethod
             demoObject[0].Radius = 40;
             demoObject[0].Shape = InteractObject.Type.square;
             demoObject[0].Color = new MCvScalar(200, 50, 50);
-
+            objectLayerKey.Add(0);
 
             demoObject.Add(new InteractObject(1));
             demoObject[1].Radius = 40;
             demoObject[1].Shape = InteractObject.Type.circle;
             demoObject[1].Color = new MCvScalar(50, 200, 50);
-
+            objectLayerKey.Add(1);
 
             demoTask = new DemoTask(demoObject);
-
 
             TrajectoryInfoDataCollection.Clear();
             //  LVinfo.Clear();
@@ -79,31 +77,55 @@ namespace Wpf_InductiveMethod
             nowGeneration = 0;
             nowSegment = 0;
             tb_GenNum.Text = "Now Gen : " + nowGeneration.ToString();
-            tb_SegNum.Text = "Now Gen : " + nowSegment.ToString();
+            tb_SegNum.Text = "Now Seg : " + nowSegment.ToString();
 
             rndObject();
             ImageUpdate();
         }
 
         #region //---Environment---\\
-        private void Image1_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        void bringUpIndex(ref List<int> list, int target)
         {
-            foreach (InteractObject obj in demoTask.DemoObject)
+            int Ti;
+            for (Ti = 0; Ti < list.Count(); Ti++)
             {
-                if (obj.isInArea(e.GetPosition(image1)))
-                {
-                    handingObj = obj.index;
-                    obj.pick();
-                    obj.thisRoundPath.Add(e.GetPosition(image1).toDraw());
-                    obj.thisRoundObjectIndex = obj.index;
-                    break;//debug 避免同時兩個一起按到
-                }
-                else//debug
-                    obj.place();
+                if (list[Ti] == target)
+                    break;
             }
-            ImageUpdate();
+            for (int i = 0; i < Ti; i++)
+            {
+                list[Ti - i] = list[Ti - i - 1];
+            }
+            list[0] = target;
         }
 
+        private void Image1_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+
+            for (int i = 0; i < objectLayerKey.Count(); i++)
+            {
+                if (demoTask.DemoObject[objectLayerKey[i]].isInArea(e.GetPosition(image1)))
+                {
+                    handingObject = i;
+                    break;//debug 避免同時兩個一起按到(有重疊)
+                }
+            }
+
+            if (handingObject == -1)//亂點
+                return;
+
+            if (thisSegmentObj != -1 && thisSegmentObj != demoTask.DemoObject[handingObject].index)
+            {
+                Btn_nextSegment_Click(null, null);
+            }
+
+            demoTask.DemoObject[handingObject].pick();
+            demoTask.DemoObject[handingObject].thisRoundPath.Add(e.GetPosition(image1).toDraw());
+
+            bringUpIndex(ref objectLayerKey, demoTask.DemoObject[handingObject].index);
+
+            ImageUpdate();
+        }
         private void Image1_MouseMove(object sender, MouseEventArgs e)
         {
             var P = e.GetPosition(image1);
@@ -118,7 +140,6 @@ namespace Wpf_InductiveMethod
             }
 
         }
-
         private void Image1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             foreach (InteractObject obj in demoTask.DemoObject)
@@ -129,9 +150,10 @@ namespace Wpf_InductiveMethod
                     obj.thisRoundPath.Add(e.GetPosition(image1).toDraw());
                 }
             }
-            ImageUpdate();
 
-            handingObj = -1;
+            thisSegmentObj = handingObject;
+            handingObject = -1;
+            ImageUpdate();
         }
         private void Btn_abortThisDemoPath_Click(object sender, RoutedEventArgs e)
         {
@@ -139,7 +161,7 @@ namespace Wpf_InductiveMethod
             {
                 obj.place();
                 obj.thisRoundPath.Clear();
-                obj.thisRoundObjectIndex = -1;
+               // obj.thisRoundObjectIndex = -1;
                 obj.thisRoundPath.Add(obj.Position);
             }
         }
@@ -156,7 +178,7 @@ namespace Wpf_InductiveMethod
                 obj.Position = new Point(rnd.Next(50, 550), rnd.Next(50, 550));
                 obj.place();
                 obj.thisRoundPath.Clear();
-                obj.thisRoundObjectIndex = -1;
+                //obj.thisRoundObjectIndex = -1;
                 //初始點 也要算一個，因為有可能初始點就剛好是我要的絕對位置
                 obj.thisRoundPath.Add(obj.Position);
             }
@@ -167,30 +189,42 @@ namespace Wpf_InductiveMethod
         #region //---nextStage---\\
         private void Btn_nextSegment_Click(object sender, RoutedEventArgs e)
         {
-            demoTask.ConfirmSegment();
+            demoTask.ConfirmSegment(thisSegmentObj);
+
+            //add listView UI
+            MCvScalar black = new MCvScalar(0, 0, 0);
+            int thisSegObj = thisSegmentObj;// demoTask.generations.Last().segments.Last().InteractObjectIndex;
+
+            TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, thisSegObj, "Abs", black, black, demoTask.DemoObject[thisSegObj].Color, black));
             for (int o = 0; o < demoTask.DemoObject.Count(); o++)
             {
-                MCvScalar black = new MCvScalar(0, 0, 0);
-                TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, o, "Abs", black, black, demoTask.DemoObject[o].Color, black));
                 TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, o, "Rel", black, black, demoTask.DemoObject[o].Color, black));
             }
 
             //new segment
+            thisSegmentObj = -1;
             nowSegment++;
             tb_SegNum.Text = "Now Seg : " + nowSegment.ToString();
-            //   rndObject();
+
             ImageUpdate();
         }
         private void Btn_nextGeneration_Click(object sender, RoutedEventArgs e)
         {
-            demoTask.ConfirmSegment();
-            demoTask.ConfirmGeneration();
+            demoTask.ConfirmSegment(thisSegmentObj);
+
+            //add listView UI
+            MCvScalar black = new MCvScalar(0, 0, 0);
+            int thisSegObj = thisSegmentObj;//demoTask.generations.Last().segments.Last().InteractObjectIndex;
+
+            TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, thisSegObj, "Abs", black, black, demoTask.DemoObject[thisSegObj].Color, black));
             for (int o = 0; o < demoTask.DemoObject.Count(); o++)
             {
-                MCvScalar black = new MCvScalar(0, 0, 0);
-                TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, o, "Abs", black, black, demoTask.DemoObject[o].Color, black));
                 TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, o, "Rel", black, black, demoTask.DemoObject[o].Color, black));
             }
+
+            demoTask.ConfirmGeneration();
+
+            thisSegmentObj = -1;
             nowGeneration++;
             tb_GenNum.Text = "Now Gen : " + nowGeneration.ToString();
             nowSegment = 0;
@@ -216,14 +250,13 @@ namespace Wpf_InductiveMethod
             string Itra = TrajectoryInfoDataCollection[selectIndex].Trajectory;
 
             if (Itra == "Abs")
-                demoTask.generations[Igen].segments[Iseg].objectTrajectoryPacks[Iobj].AbsoluteTrajectory.DrawOn(mat, new Point(0, 0), demoTask.DemoObject[Iobj].Color);
+                demoTask.generations[Igen].segments[Iseg].AbsoluteTrajectory.DrawOn(mat, new Point(0, 0), demoTask.DemoObject[Iobj].Color);
             else if (Itra == "Rel")
-                demoTask.generations[Igen].segments[Iseg].objectTrajectoryPacks[Iobj].RelativeTrajectory.DrawOn(mat, demoTask.DemoObject[Iobj].Position, demoTask.DemoObject[Iobj].Color, 4, 1);
+                demoTask.generations[Igen].segments[Iseg].RelativeTrajectory[Iobj].DrawOn(mat, demoTask.DemoObject[Iobj].Position, demoTask.DemoObject[Iobj].Color, 4, 1);
 
             image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
 
         }
-
         private void Btn_DrawChecked_Click(object sender, RoutedEventArgs e)
         {
             for (int i = 0; i < TrajectoryInfoDataCollection.Count(); i++)
@@ -235,12 +268,12 @@ namespace Wpf_InductiveMethod
                     int Iobj = TrajectoryInfoDataCollection[i].Object;
                     string Itra = TrajectoryInfoDataCollection[i].Trajectory;
                     if (Itra == "Abs")
-                        demoTask.generations[Igen].segments[Iseg].objectTrajectoryPacks[Iobj].AbsoluteTrajectory.DrawOn(mat, new Point(0, 0), demoTask.DemoObject[Iobj].Color);
+                        demoTask.generations[Igen].segments[Iseg].AbsoluteTrajectory.DrawOn(mat, new Point(0, 0), demoTask.DemoObject[Iobj].Color);
                     else if (Itra == "Rel")//relative才會有 誰為原點的問題
                     {
-                        int interactObject = demoTask.generations[Igen].segments[Iseg].objectTrajectoryPacks[Iobj].InteractObjectIndex;
+                        int interactObject = demoTask.generations[Igen].segments[Iseg].InteractObjectIndex;
                         //這裡的color要注意，因為可能是別人在動，只是以自己為原點，所以不能畫 自己顏色的路徑，會誤會。
-                        demoTask.generations[Igen].segments[Iseg].objectTrajectoryPacks[Iobj].RelativeTrajectory.DrawOn(mat, demoTask.DemoObject[Iobj].Position, demoTask.DemoObject[interactObject].Color, 4, 1);
+                        demoTask.generations[Igen].segments[Iseg].RelativeTrajectory[Iobj].DrawOn(mat, demoTask.DemoObject[Iobj].Position, demoTask.DemoObject[interactObject].Color, 4, 1);
                     }
                 }
             }
@@ -261,63 +294,68 @@ namespace Wpf_InductiveMethod
 
         private void Btn_InductiveSegment_Click(object sender, RoutedEventArgs e)
         {
-
-            int segmentIndex = 0;
             demoTask.ZeroAllKeys();
-            for (int O = 0; O < demoTask.DemoObject.Count(); O++)
+            int segmentIndex = 0;
+            for (; segmentIndex < demoTask.generations[0].segments.Count(); segmentIndex++)
+            {
                 for (int G = 1; G < demoTask.generations.Count() - 1; G++)//generations 會多一 ，因為示範結束就++，但還沒示範就進到這裡了
                 {
+                    //ABS 比較
                     CompareTwoTrajectory(
-                         demoTask.generations[0].segments[segmentIndex].objectTrajectoryPacks[O].AbsoluteTrajectory,
-                         demoTask.generations[G].segments[segmentIndex].objectTrajectoryPacks[O].AbsoluteTrajectory,
-                         20);
-                    CompareTwoTrajectory(
-                       demoTask.generations[0].segments[segmentIndex].objectTrajectoryPacks[O].RelativeTrajectory,
-                       demoTask.generations[G].segments[segmentIndex].objectTrajectoryPacks[O].RelativeTrajectory,
-                       20);
+                        demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory,
+                        demoTask.generations[G].segments[segmentIndex].AbsoluteTrajectory,
+                        20);
+                    //Rel 比較
+                    for (int O = 0; O < demoTask.DemoObject.Count(); O++)
+                    {
+                        CompareTwoTrajectory(
+                           demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O],
+                           demoTask.generations[G].segments[segmentIndex].RelativeTrajectory[O],
+                           20);
+                    }
+                    //注意!! key path 只存到 generations[0]
                 }
 
-            int threshold = demoTask.generations.Count() - 2;// 示範完會++ 所以少一，互相比較，所以若N代又要全部都是key 會需要N-1個(比喻:雙循環賽 全贏)
-            for (int O = 0; O < demoTask.DemoObject.Count(); O++)
-            {
-                demoTask.generations[0].segments[0].objectTrajectoryPacks[O].AbsoluteTrajectory.DrawKeyOn(mat, new Point(0, 0), threshold, new MCvScalar(55, 5, 200));
-                demoTask.generations[0].segments[0].objectTrajectoryPacks[O].RelativeTrajectory.DrawKeyOn(mat, demoTask.DemoObject[O].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
+                //draw keyPath on UI
+                int threshold = demoTask.generations.Count() - 2;// 示範完會++ 所以少一，互相比較，所以若N代又要全部都是key 會需要N-1個(比喻:雙循環賽 全贏)
+                demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory.DrawKeyOn(mat, new Point(0, 0), threshold, new MCvScalar(55, 5, 200));
+                for (int O = 0; O < demoTask.DemoObject.Count(); O++)
+                    demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O].DrawKeyOn(mat, demoTask.DemoObject[O].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
+
+                int interactObject = demoTask.generations[0].segments[segmentIndex].InteractObjectIndex;
+
+                List<Point> path = new List<Point>();
+                for (int k = 0; k < demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory.PathKeyMatch.Count(); k++)//PathKeyCount.Count() 都會一樣
+                {
+                    if (demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory.PathKeyMatch[k] >= threshold)
+                    {
+                        path.Add(demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory.PathList[k]);
+                    }
+                    else
+                    {    //RelativeTrajectory 有多個物件
+                        for (int O = 0; O < demoTask.DemoObject.Count(); O++)
+                        {
+                            if (demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O].PathKeyMatch[k] >= threshold)
+                            {
+                                Point Pr = new Point(demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O].PathList[k].X + demoTask.DemoObject[O].Position.X,
+                                                               demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O].PathList[k].Y + demoTask.DemoObject[O].Position.Y);
+                                path.Add(Pr);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                //draw
+                CvInvoke.Line(mat, demoTask.DemoObject[interactObject].Position, path[0], demoTask.DemoObject[interactObject].Color, 2);
+                for (int i = 1; i < path.Count(); i++)
+                {
+                    CvInvoke.Line(mat, path[i - 1], path[i], demoTask.DemoObject[interactObject].Color, 2);
+                }
             }
-
-            //int interactObject = demoTask.generations[0].segments[0].objectTrajectoryPacks[0].InteractObjectIndex;
-
-            //List<Point> path = new List<Point>();
-            //for (int k = 0; k < demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathKeyCount.Count(); k++)
-            //{
-            //    if (demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathKeyCount[k] >= threshold)
-            //    {
-            //        path.Add(demoTask.generations[0].segments[0].objectTrajectoryPacks[interactObject].AbsoluteTrajectory.PathList[k]);
-
-            //    }
-            //    //RelativeTrajectory 可能有兩個物件
-            //    else if (demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathKeyCount[k] >= threshold)
-            //    {
-            //        Point Pr = new Point(demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathList[k].X+ demoTask.DemoObject[interactObject].Position.X,
-            //                                                demoTask.generations[0].segments[0].objectTrajectoryPacks[0].RelativeTrajectory.PathList[k].Y + demoTask.DemoObject[interactObject].Position.Y);
-            //        path.Add(Pr);
-            //    }
-            //    else if (demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathKeyCount[k] >= threshold)
-            //    {
-            //        Point Pr = new Point(demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathList[k].X + demoTask.DemoObject[interactObject].Position.X,
-            //                                               demoTask.generations[0].segments[0].objectTrajectoryPacks[1].RelativeTrajectory.PathList[k].Y + demoTask.DemoObject[interactObject].Position.Y);
-            //        path.Add(Pr);
-            //    }
-            //}
-            //CvInvoke.Line(mat, demoTask.DemoObject[interactObject].Position, path[0], demoTask.DemoObject[interactObject].Color, 3);
-            //for (int i = 1; i < path.Count(); i++)
-            //{
-            //    CvInvoke.Line(mat, path[i-1], path[i], demoTask.DemoObject[interactObject].Color, 3);
-            //}
-
 
             image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
         }
-
 
         private void Btn_countKeyPoint_Click(object sender, RoutedEventArgs e)
         {
@@ -340,15 +378,15 @@ namespace Wpf_InductiveMethod
                     if (Itra == "Abs")
                     {
                         CompareTwoTrajectory(
-                        demoTask.generations[Igen].segments[S].objectTrajectoryPacks[Iobj].AbsoluteTrajectory,
-                        demoTask.generations[G].segments[S].objectTrajectoryPacks[Iobj].AbsoluteTrajectory,
+                        demoTask.generations[Igen].segments[S].AbsoluteTrajectory,
+                        demoTask.generations[G].segments[S].AbsoluteTrajectory,
                         20);
                     }
                     else if (Itra == "Rel")
                     {
                         CompareTwoTrajectory(
-                        demoTask.generations[Igen].segments[S].objectTrajectoryPacks[Iobj].RelativeTrajectory,
-                        demoTask.generations[G].segments[S].objectTrajectoryPacks[Iobj].RelativeTrajectory,
+                        demoTask.generations[Igen].segments[S].RelativeTrajectory[Iobj],
+                        demoTask.generations[G].segments[S].RelativeTrajectory[Iobj],
                         20);
                     }
             }
@@ -356,9 +394,9 @@ namespace Wpf_InductiveMethod
             //draw
             int threshold = demoTask.generations.Count() - 2;// 示範完會++ 所以少一，互相比較，所以若N代又要全部都是key 會需要N-1個(比喻:雙循環賽 全贏)
             if (Itra == "Abs")
-                demoTask.generations[Igen].segments[0].objectTrajectoryPacks[Iobj].AbsoluteTrajectory.DrawKeyOn(mat, new Point(0, 0), threshold, new MCvScalar(55, 5, 200));
+                demoTask.generations[Igen].segments[0].AbsoluteTrajectory.DrawKeyOn(mat, new Point(0, 0), threshold, new MCvScalar(55, 5, 200));
             else if (Itra == "Rel")
-                demoTask.generations[Igen].segments[0].objectTrajectoryPacks[Iobj].RelativeTrajectory.DrawKeyOn(mat, demoTask.DemoObject[Iobj].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
+                demoTask.generations[Igen].segments[0].RelativeTrajectory[Iobj].DrawKeyOn(mat, demoTask.DemoObject[Iobj].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
 
             image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
         }
@@ -369,12 +407,11 @@ namespace Wpf_InductiveMethod
                 for (int Pc = 0; Pc < Tc.PathList.Count(); Pc++)//compare with T1
                     if (Ex.Distanse(T0.PathList[P], Tc.PathList[Pc]) < distance)//如果T0P0 與 T1Pc0 距離小於   則
                     {
-                        T0.PathKeyCount[P]++;
+                        T0.PathKeyMatch[P]++;
                         break;//若比對正確，一條路徑只會算一次(each Tc counts once)
                     }
             }
         }
-
 
         private void Btn_remove_Click(object sender, RoutedEventArgs e)
         {
@@ -386,7 +423,6 @@ namespace Wpf_InductiveMethod
             }
             TrajectoryInfoDataCollection.RemoveAt(removeIndex);
         }
-
     }
 
     public class TrajectoryInfoData : INotifyPropertyChanged
