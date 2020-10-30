@@ -10,34 +10,40 @@ using Emgu.CV.CvEnum;
 using Point = System.Drawing.Point;
 using System.Diagnostics;
 
-namespace Wpf_InductiveMethod
+namespace InductiveMethod
 {
     public class DemoTask
     {
+        /// <summary>Generations of Task</summary>
+        public Environment environment;// = new Environment();
         public List<Generation> generations = new List<Generation>();
-        public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
-        public DemoTask(List<InteractObject> demoObject)
+        /// <summary>Demo objects</summary>
+       // public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
+        public DemoTask(List<InteractObject> demoObject,bool isPointer = true)
         {
-            DemoObject = demoObject;
+            environment = new Environment(demoObject,isPointer);
+
             generations = new List<Generation>();
             generations.Add(new Generation());
         }
-        //object function
+
+        //Draw
         public void drawObjectOn(IInputOutputArray mat)
         {
-            foreach (InteractObject obj in DemoObject)
+            foreach (InteractObject obj in environment.DemoObject)
                 obj.drawOn(mat);
         }
         public void drawObjectOn(IInputOutputArray mat, List<int> layerList)
         {
             for (int i = layerList.Count() - 1; i >= 0; i--)
             {
-                DemoObject[layerList[i]].drawOn(mat);
+                environment.DemoObject[layerList[i]].drawOn(mat);
             }
         }
+
         public void ConfirmGeneration()
         {
-            if(DemoObject == null)
+            if(environment.DemoObject == null)
                 throw new Exception("Genearation沒有初始化");
             generations.Add(new Generation());
         }
@@ -46,44 +52,36 @@ namespace Wpf_InductiveMethod
             Console.WriteLine("ConfirmSegment with object:"+index.ToString());
             Segment addin = null;
             int interactObjectIndex = -1;
-            //for (int i = 0; i < DemoObject.Count(); i++)
-            //{
-            //    if (DemoObject[i].thisRoundObjectIndex != -1)
-            //    {
-            //        
-            //        interactObjectIndex = DemoObject[i].thisRoundObjectIndex;
-            //        break;
-            //    }
-            //}
-            addin = new Segment(index, DemoObject.Count());
+  
+            addin = new Segment(index, environment.DemoObject.Count());
             interactObjectIndex = index;
 
             if (addin == null || interactObjectIndex == -1)
                 throw new Exception("Segment 裡面的 thisRoundObjectIndex 不該都為-1");
 
             //絕對路徑 各加各的//應該只需要加interact object就可以了//另一個不管，因為只能有一個物件移動
-            for (int p = 0; p < DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
+            for (int p = 0; p < environment.DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
             {
                 //addin.objectTrajectoryPacks[interactObjectIndex].AbsoluteTrajectory.AddPoint(DemoObject[interactObjectIndex].thisRoundPath[p]);
-                addin.AbsoluteTrajectory.AddPoint(DemoObject[interactObjectIndex].thisRoundPath[p]);
+                addin.AbsoluteTrajectory.AddPoint(environment.DemoObject[interactObjectIndex].thisRoundPath[p]);
             }
 
             //相對路徑 都只管interact object 的路徑 只是以不同物件為原點
-            for (int i = 0; i < DemoObject.Count(); i++)
+            for (int i = 0; i < environment.DemoObject.Count(); i++)
             {
-                for (int p = 0; p < DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
+                for (int p = 0; p < environment.DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
                 {
                     //要以自己起始點為原點  不能是自己的終點
-                    Point Pr = new Point(DemoObject[interactObjectIndex].thisRoundPath[p].X - DemoObject[i].thisRoundPath[0].X, DemoObject[interactObjectIndex].thisRoundPath[p].Y - DemoObject[i].thisRoundPath[0].Y);
+                    Point Pr = new Point(environment.DemoObject[interactObjectIndex].thisRoundPath[p].X - environment.DemoObject[i].thisRoundPath[0].X, environment.DemoObject[interactObjectIndex].thisRoundPath[p].Y - environment.DemoObject[i].thisRoundPath[0].Y);
                     addin.RelativeTrajectory[i].AddPoint(Pr);
                 }
             }
 
             //清除 thisRoundPath
-            for (int i = 0; i < DemoObject.Count(); i++)
+            for (int i = 0; i < environment.DemoObject.Count(); i++)
             {
-                DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
-                DemoObject[i].thisRoundPath.Add(DemoObject[i].Position);//給第一個初始點
+                environment.DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
+                environment.DemoObject[i].thisRoundPath.Add(environment.DemoObject[i].Position);//給第一個初始點
             }
 
          generations.Last().segments.Add(addin);//UNDONE 如果要換方法，addin
@@ -101,20 +99,48 @@ namespace Wpf_InductiveMethod
                     }
                 }
         }
-
-
     }
+
+    /// <summary>
+    /// Environment
+    /// including demo objects status, moving path,  
+    /// temporary saving parameter until next segment
+    /// </summary>
+    public class Environment
+    {
+        public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
+        public Environment(List<InteractObject> demoObject , bool isPointer = true)
+        {
+            if (isPointer)
+                DemoObject = demoObject;
+            else
+                DemoObject = demoObject.ToList();
+        }
+        /// <summary>temporal path in this segment</summary>
+        public List<Point> thisSegPath = new List<Point>();
+        /// <summary>temporal object index in this segment</summary>
+        public int thisSegObjectIndex = -1;
+
+        /// <summary>The Object witch is on hand (null = -1)</summary>
+        public int handingObjectIndex = -1;
+        public void Pick(int objectIndex)
+        {
+            DemoObject[objectIndex].pick();
+            thisSegObjectIndex = objectIndex;
+            DemoObject[0].test = 1;
+        }
+        public void Place(int objectIndex)
+        {
+            DemoObject[objectIndex].place();
+            handingObjectIndex = -1;
+        }
+    }
+
     public class Generation
     {
         public List<Segment> segments = new List<Segment>();
-        //public Generation(int objectCount)
-        //{
-        //    //segments.Add(new Segment(-1, objectCount));
-        //}
-    }
 
-    //一個segment只有一個物件，是因為要避免示範時物件ABAB的換
-    //demoTask.generation.segment
+    }
     public class Segment
     {
         public int InteractObjectIndex = -1;
@@ -122,15 +148,12 @@ namespace Wpf_InductiveMethod
         public Segment(int interactObjectIndex, int objectCount)
         {
             InteractObjectIndex = interactObjectIndex;
-            //for (int i = 0; i < objectCount; i++)
-            //    objectTrajectoryPacks.Add(new ObjectTrajectoryPack(i, interactObjectIndex));
 
             for(int i=0;i<objectCount;i++)
             {
                 RelativeTrajectory.Add(new Trajectory());
             }
         }
-
         public Trajectory AbsoluteTrajectory = new Trajectory();
         public List<Trajectory> RelativeTrajectory = new List<Trajectory>();
 
@@ -139,8 +162,6 @@ namespace Wpf_InductiveMethod
             return AbsoluteTrajectory.PathList.Count();
         }
     }
-
-
     public class InteractObject
     {
         public enum Type
@@ -154,6 +175,8 @@ namespace Wpf_InductiveMethod
         public int Radius = 30;
         public MCvScalar Color { get; set; } = new MCvScalar(150, 150, 150);
 
+        internal int test = 0;
+
         private bool _isPick = false;
 
         public InteractObject(int i)
@@ -165,11 +188,11 @@ namespace Wpf_InductiveMethod
             get { return _isPick; }
         }
 
-        public void pick()
+        internal void pick()
         {
             _isPick = true;
         }
-        public void place()
+        internal void place()
         {
             _isPick = false;
         }
@@ -228,7 +251,7 @@ namespace Wpf_InductiveMethod
 
     }
 
-    public class ObjectTrajectoryPack
+    /*public class ObjectTrajectoryPack
     {
         public int OriginObjectIndex = -1;
         public int InteractObjectIndex = -1;
@@ -245,7 +268,7 @@ namespace Wpf_InductiveMethod
         {
             return AbsoluteTrajectory.PathList.Count();
         }
-    }
+    }*/
     public class Trajectory
     {
         public List<Point> PathList = new List<Point>();
