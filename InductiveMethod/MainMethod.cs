@@ -22,7 +22,6 @@ namespace InductiveMethod
         public DemoTask(List<InteractObject> demoObject, bool isPointer = true)
         {
             environment = new Environment(demoObject, isPointer);
-
             generations = new List<Generation>();
             generations.Add(new Generation());
         }
@@ -106,7 +105,7 @@ namespace InductiveMethod
     /// including demo objects status, moving path,  
     /// temporary saving parameter until next segment
     /// </summary>
-    public class Environment 
+    public class Environment
     {
         public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
         public Environment(List<InteractObject> demoObject, bool isPointer = true)
