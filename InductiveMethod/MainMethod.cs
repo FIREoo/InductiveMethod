@@ -59,29 +59,30 @@ namespace InductiveMethod
                 throw new Exception("Segment 裡面的 thisRoundObjectIndex 不該都為-1");
 
             //絕對路徑 各加各的//應該只需要加interact object就可以了//另一個不管，因為只能有一個物件移動
-            for (int p = 0; p < environment.DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
+            for (int p = 0; p < environment.thisSegPath.Count(); p++)
             {
                 //addin.objectTrajectoryPacks[interactObjectIndex].AbsoluteTrajectory.AddPoint(DemoObject[interactObjectIndex].thisRoundPath[p]);
-                addin.AbsoluteTrajectory.AddPoint(environment.DemoObject[interactObjectIndex].thisRoundPath[p]);
+                addin.AbsoluteTrajectory.AddPoint(environment.thisSegPath[p]);
             }
 
             //相對路徑 都只管interact object 的路徑 只是以不同物件為原點
             for (int i = 0; i < environment.DemoObject.Count(); i++)
             {
-                for (int p = 0; p < environment.DemoObject[interactObjectIndex].thisRoundPath.Count(); p++)
+                for (int p = 0; p < environment.thisSegPath.Count(); p++)
                 {
                     //要以自己起始點為原點  不能是自己的終點
-                    Point Pr = new Point(environment.DemoObject[interactObjectIndex].thisRoundPath[p].X - environment.DemoObject[i].thisRoundPath[0].X, environment.DemoObject[interactObjectIndex].thisRoundPath[p].Y - environment.DemoObject[i].thisRoundPath[0].Y);
+                    Point Pr = new Point(environment.thisSegPath[p].X - environment.DemoObject[i].Position.X, environment.thisSegPath[p].Y - environment.DemoObject[i].Position.Y);
                     addin.RelativeTrajectory[i].AddPoint(Pr);
                 }
             }
 
             //清除 thisRoundPath
-            for (int i = 0; i < environment.DemoObject.Count(); i++)
-            {
-                environment.DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
-                environment.DemoObject[i].thisRoundPath.Add(environment.DemoObject[i].Position);//給第一個初始點
-            }
+            environment.thisSegPath.Clear();
+            //for (int i = 0; i < environment.DemoObject.Count(); i++)
+            //{
+            //    environment.DemoObject[i].thisRoundPath.Clear();//提供新的給 下次demo用
+            //    environment.DemoObject[i].thisRoundPath.Add(environment.DemoObject[i].Position);//給第一個初始點
+            //}
 
             generations.Last().segments.Add(addin);//UNDONE 如果要換方法，addin
         }
@@ -120,18 +121,26 @@ namespace InductiveMethod
         public List<Point> thisSegPath = new List<Point>();
         /// <summary>temporal object index in this segment</summary>
         public int thisSegObjectIndex = -1;
-
         /// <summary>The Object witch is on hand (null = -1)</summary>
         public int handingObjectIndex = -1;
+
         public void Pick(int objectIndex)
         {
             DemoObject[objectIndex].pick();
+            handingObjectIndex = objectIndex;
             thisSegObjectIndex = objectIndex;
-            DemoObject[0].test = 1;
         }
         public void Place(int objectIndex)
         {
             DemoObject[objectIndex].place();
+            handingObjectIndex = -1;
+        }
+        public void Place()
+        {
+            if (handingObjectIndex == -1)//本來就沒拿東西。
+                return;
+            foreach (InteractObject io in DemoObject)
+                io.place();
             handingObjectIndex = -1;
         }
     }
@@ -141,6 +150,8 @@ namespace InductiveMethod
         public List<Segment> segments = new List<Segment>();
 
     }
+
+    /// <summary>Segment 用於儲存絕對、相對路徑跟"一個"互動物件</summary>
     public class Segment
     {
         public int InteractObjectIndex = -1;
@@ -175,8 +186,6 @@ namespace InductiveMethod
         public int Radius = 30;
         public MCvScalar Color { get; set; } = new MCvScalar(150, 150, 150);
 
-        internal int test = 0;
-
         private bool _isPick = false;
 
         public InteractObject(int i)
@@ -188,11 +197,11 @@ namespace InductiveMethod
             get { return _isPick; }
         }
 
-        public void pick()
+        internal void pick()
         {
             _isPick = true;
         }
-        public void place()
+        internal void place()
         {
             _isPick = false;
         }
@@ -204,7 +213,7 @@ namespace InductiveMethod
             if (Shape == Type.circle)
             {
                 double result = Math.Sqrt(distX * distX + distY * distY);
-                if (result <= 30)
+                if (result <= Radius)
                     return true;
                 else
                     return false;
@@ -247,7 +256,7 @@ namespace InductiveMethod
 
         }
         /// <summary>用於儲存目前圖上的路徑</summary>
-        public List<Point> thisRoundPath = new List<Point>();
+        //public List<Point> thisRoundPath = new List<Point>();
 
     }
 

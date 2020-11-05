@@ -17,6 +17,7 @@ using Emgu.CV;
 using Emgu.CV.Structure;
 using Emgu.CV.CvEnum;
 using InductiveMethod;
+using myEmguLibrary;
 
 using Point = System.Drawing.Point;
 using System.Windows.Threading;
@@ -41,11 +42,11 @@ namespace Wpf_InductiveMethod
         {
             mat.SetTo(new byte[600 * 600 * 3]);
             demoTask.drawObjectOn(mat, objectLayerKey);
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
 
-        int thisSegmentObj = -1;
-        int handingObject = -1;
+       // int thisSegmentObj = -1;
+     //   int handingObject = -1;
 
         ObservableCollection<TrajectoryInfoData> TrajectoryInfoDataCollection = new ObservableCollection<TrajectoryInfoData>();
         //List<string[]> LVinfo = new List<string[]>();//我不知道怎麼取得 select listView text，所以用這個存
@@ -101,8 +102,13 @@ namespace Wpf_InductiveMethod
             list[0] = target;
         }
 
+        int pick_center_diff_x = 0;
+        int pick_center_diff_y = 0;
         private void Image1_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            //-----pick 物件-----
+            int handingObject = -1;
+            //找按到的物件
             for (int i = 0; i < objectLayerKey.Count(); i++)
             {
                 if (demoTask.environment.DemoObject[objectLayerKey[i]].isInArea(e.GetPosition(image1)))
@@ -111,60 +117,84 @@ namespace Wpf_InductiveMethod
                     break;//debug 避免同時兩個一起按到(有重疊)
                 }
             }
-            Console.WriteLine("pick:"+handingObject.ToString());
 
-            if (handingObject == -1)//亂點
+            if (handingObject == -1)//亂點，沒找到
                 return;
 
-            if (thisSegmentObj != -1 && thisSegmentObj != demoTask.environment.DemoObject[handingObject].index)
+
+            pick_center_diff_x = (int)e.GetPosition(image1).X - demoTask.environment.DemoObject[handingObject].Position.X;
+            pick_center_diff_y = (int)e.GetPosition(image1).Y - demoTask.environment.DemoObject[handingObject].Position.Y;
+
+
+            ////確認是否跟上一次一樣，一樣就繼續，不一樣代表要換segment
+            //if (thisSegmentObj != -1 && thisSegmentObj != demoTask.environment.DemoObject[handingObject].index)
+            //{
+            //    Btn_nextSegment_Click(null, null);
+            //}
+
+            if (demoTask.environment.thisSegObjectIndex == -1 || demoTask.environment.thisSegObjectIndex == handingObject)//首次拿取 OR 拿到一樣的，繼續
             {
+                demoTask.environment.Pick(handingObject);
+                demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[handingObject].Position);
+            }
+            else
+            {
+                //換東西拿
                 Btn_nextSegment_Click(null, null);
+                demoTask.environment.Pick(handingObject);
+                demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[handingObject].Position);
             }
 
-            demoTask.environment.DemoObject[handingObject].pick();
-            demoTask.environment.DemoObject[handingObject].thisRoundPath.Add(e.GetPosition(image1).toDraw());
-
-            bringUpIndex(ref objectLayerKey, demoTask.environment.DemoObject[handingObject].index);
+            bringUpIndex(ref objectLayerKey, handingObject);
 
             ImageUpdate();
         }
         private void Image1_MouseMove(object sender, MouseEventArgs e)
         {
             var P = e.GetPosition(image1);
-            foreach (InteractObject obj in demoTask.environment.DemoObject)
-            {
-                if (obj.isPick)
-                {
-                    obj.Position = new Point((int)P.X, (int)P.Y);
-                    obj.thisRoundPath.Add(e.GetPosition(image1).toDraw());
-                    ImageUpdate();//放這裡，拖拉時浪費效能，但沒事時省效能
-                }
-            }
+            P.X -= pick_center_diff_x;
+            P.Y -= pick_center_diff_y;
 
+            if (demoTask.environment.handingObjectIndex == -1)//沒拿著東西，跳過
+                return;
+
+            if (demoTask.environment.handingObjectIndex != demoTask.environment.thisSegObjectIndex)
+                throw new Exception("handingObjectIndex != thisSegObjectIndex\nshould already commited this segment");
+
+            demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Position = new Point((int)P.X, (int)P.Y);
+            demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Position);
+
+            ImageUpdate();//放這裡，拖拉時浪費效能，但沒事時省效能
         }
         private void Image1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            foreach (InteractObject obj in demoTask.environment.DemoObject)
-            {
-                if (obj.isInArea(e.GetPosition(image1)))
-                {
-                    obj.place();
-                    obj.thisRoundPath.Add(e.GetPosition(image1).toDraw());
-                }
-            }
+            var P = e.GetPosition(image1);
+            P.X -= pick_center_diff_x;
+            P.Y -= pick_center_diff_y;
 
-            thisSegmentObj = handingObject;
-            handingObject = -1;
+            if (demoTask.environment.handingObjectIndex == -1)//沒拿著東西，跳過
+                return;
+
+            if (demoTask.environment.handingObjectIndex != demoTask.environment.thisSegObjectIndex)
+                throw new Exception("handingObjectIndex != thisSegObjectIndex\nshould already commited this segment");
+
+            demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[demoTask.environment.thisSegObjectIndex].Position);
+            demoTask.environment.Place(demoTask.environment.handingObjectIndex);
+
+            demoTask.environment.handingObjectIndex = -1;
             ImageUpdate();
         }
         private void Btn_abortThisDemoPath_Click(object sender, RoutedEventArgs e)
         {
-            foreach (InteractObject obj in demoTask.environment.DemoObject)
-            {
-                obj.place();
-                obj.thisRoundPath.Clear();
-                obj.thisRoundPath.Add(obj.Position);
-            }
+            demoTask.environment.Place();
+            demoTask.environment.thisSegPath.Clear();
+
+            //foreach (InteractObject obj in demoTask.environment.DemoObject)
+            //{
+            //    obj.place();
+            //    obj.thisRoundPath.Clear();
+            //    obj.thisRoundPath.Add(obj.Position);
+            //}
         }
         private void Btn_resetPos_Click(object sender, RoutedEventArgs e)
         {
@@ -177,11 +207,11 @@ namespace Wpf_InductiveMethod
             foreach (InteractObject obj in demoTask.environment.DemoObject)
             {
                 obj.Position = new Point(rnd.Next(50, 550), rnd.Next(50, 550));
-                obj.place();
-                obj.thisRoundPath.Clear();
-                //obj.thisRoundObjectIndex = -1;
-                //初始點 也要算一個，因為有可能初始點就剛好是我要的絕對位置
-                obj.thisRoundPath.Add(obj.Position);
+                //obj.place();
+                //obj.thisRoundPath.Clear();
+                ////obj.thisRoundObjectIndex = -1;
+                ////初始點 也要算一個，因為有可能初始點就剛好是我要的絕對位置
+                //obj.thisRoundPath.Add(obj.Position);
             }
         }
 
@@ -190,11 +220,11 @@ namespace Wpf_InductiveMethod
         #region //---nextStage---\\
         private void Btn_nextSegment_Click(object sender, RoutedEventArgs e)
         {
-            demoTask.ConfirmSegment(thisSegmentObj);
+            demoTask.ConfirmSegment(demoTask.environment.thisSegObjectIndex);
 
             //add listView UI
             MCvScalar black = new MCvScalar(0, 0, 0);
-            int thisSegObj = thisSegmentObj;// demoTask.generations.Last().segments.Last().InteractObjectIndex;
+            int thisSegObj = demoTask.environment.thisSegObjectIndex;// demoTask.generations.Last().segments.Last().InteractObjectIndex;
 
             TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, thisSegObj, "Abs", black, black, demoTask.environment.DemoObject[thisSegObj].Color, black));
             for (int o = 0; o < demoTask.environment.DemoObject.Count(); o++)
@@ -203,7 +233,7 @@ namespace Wpf_InductiveMethod
             }
 
             //new segment
-            thisSegmentObj = -1;
+            demoTask.environment.thisSegObjectIndex = -1;
             nowSegment++;
             tb_SegNum.Text = "Now Seg : " + nowSegment.ToString();
 
@@ -211,11 +241,11 @@ namespace Wpf_InductiveMethod
         }
         private void Btn_nextGeneration_Click(object sender, RoutedEventArgs e)
         {
-            demoTask.ConfirmSegment(thisSegmentObj);
+            demoTask.ConfirmSegment(demoTask.environment.thisSegObjectIndex);
 
             //add listView UI
             MCvScalar black = new MCvScalar(0, 0, 0);
-            int thisSegObj = thisSegmentObj;//demoTask.generations.Last().segments.Last().InteractObjectIndex;
+            int thisSegObj = demoTask.environment.thisSegObjectIndex;//demoTask.generations.Last().segments.Last().InteractObjectIndex;
 
             TrajectoryInfoDataCollection.Add(new TrajectoryInfoData(nowGeneration, nowSegment, thisSegObj, "Abs", black, black, demoTask.environment.DemoObject[thisSegObj].Color, black));
             for (int o = 0; o < demoTask.environment.DemoObject.Count(); o++)
@@ -225,7 +255,8 @@ namespace Wpf_InductiveMethod
 
             demoTask.ConfirmGeneration();
 
-            thisSegmentObj = -1;
+            //new generation and segment
+            demoTask.environment.thisSegObjectIndex = -1;
             nowGeneration++;
             tb_GenNum.Text = "Now Gen : " + nowGeneration.ToString();
             nowSegment = 0;
@@ -255,7 +286,7 @@ namespace Wpf_InductiveMethod
             else if (Itra == "Rel")
                 demoTask.generations[Igen].segments[Iseg].RelativeTrajectory[Iobj].DrawOn(mat, demoTask.environment.DemoObject[Iobj].Position, demoTask.environment.DemoObject[Iobj].Color, 4, 1);
 
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
 
         }
         private void Btn_DrawChecked_Click(object sender, RoutedEventArgs e)
@@ -278,18 +309,18 @@ namespace Wpf_InductiveMethod
                     }
                 }
             }
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
         private void Btn_clearImage_Click(object sender, RoutedEventArgs e)
         {
             mat.SetTo(new byte[600 * 600 * 3]);
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
         private void But_clearPath_Click(object sender, RoutedEventArgs e)
         {
             mat.SetTo(new byte[600 * 600 * 3]);
             ImageUpdate();
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
         #endregion \\---draw replat Path---//
 
@@ -355,7 +386,7 @@ namespace Wpf_InductiveMethod
                 }
             }
 
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
 
         private void Btn_countKeyPoint_Click(object sender, RoutedEventArgs e)
@@ -399,7 +430,7 @@ namespace Wpf_InductiveMethod
             else if (Itra == "Rel")
                 demoTask.generations[Igen].segments[0].RelativeTrajectory[Iobj].DrawKeyOn(mat, demoTask.environment.DemoObject[Iobj].Position, threshold, new MCvScalar(55, 5, 200), 4, 1);
 
-            image1.Source = BitmapSourceConvert.ToBitmapSource(mat);
+            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
         private void CompareTwoTrajectory(Trajectory T0, Trajectory Tc, int distance)
         {
@@ -424,6 +455,7 @@ namespace Wpf_InductiveMethod
             }
             TrajectoryInfoDataCollection.RemoveAt(removeIndex);
         }
+
     }
 
     public class TrajectoryInfoData : INotifyPropertyChanged
@@ -547,21 +579,41 @@ namespace Wpf_InductiveMethod
         [DllImport("gdi32")]
         private static extern int DeleteObject(IntPtr o);
 
-        public static BitmapSource ToBitmapSource(IImage image)
+        //public static BitmapSource ToBitmapSource(IImage image)
+        //{
+        //    using (System.Drawing.Bitmap source = image.Bitmap)
+        //    {
+        //        IntPtr ptr = source.GetHbitmap(); //obtain the Hbitmap
+
+        //        BitmapSource bs = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
+        //            ptr,
+        //            IntPtr.Zero,
+        //            Int32Rect.Empty,
+        //            System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+
+        //        DeleteObject(ptr); //release the HBitmap
+        //        return bs;
+        //    }
+        //}
+    }
+
+    public static class Ex
+    {
+        static public Point toDraw(this System.Windows.Point wPoint)
         {
-            using (System.Drawing.Bitmap source = image.Bitmap)
-            {
-                IntPtr ptr = source.GetHbitmap(); //obtain the Hbitmap
+            return new Point((int)wPoint.X, (int)wPoint.Y);
+        }
+        static public int toInt(this string str)
+        {
+            return int.Parse(str);
+        }
+        static public int Distanse(Point P1, Point P2)
+        {
+            int dx = P2.X - P1.X;
+            int dy = P2.Y - P1.Y;
 
-                BitmapSource bs = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                    ptr,
-                    IntPtr.Zero,
-                    Int32Rect.Empty,
-                    System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-
-                DeleteObject(ptr); //release the HBitmap
-                return bs;
-            }
+            double D = Math.Sqrt((dx * dx) + (dy * dy));
+            return (int)D;
         }
     }
 }
