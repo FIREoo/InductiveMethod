@@ -9,24 +9,48 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InductiveMethod", "Inductiv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "myEmguLibrary", "myEmguTools\myEmguLibrary\myEmguLibrary.csproj", "{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EzKinectAzure", "..\EzKinectAzure\EzKinectAzure\EzKinectAzure.csproj", "{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Debug|x64.Build.0 = Debug|Any CPU
 		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Release|x64.ActiveCfg = Release|Any CPU
+		{9172D116-36AF-4AAB-8984-C06B806AB6FF}.Release|x64.Build.0 = Release|Any CPU
 		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Debug|x64.Build.0 = Debug|Any CPU
 		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Release|x64.ActiveCfg = Release|Any CPU
+		{E2561DEA-1B8B-47E3-BE1A-018D01374E4F}.Release|x64.Build.0 = Release|Any CPU
 		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Debug|x64.Build.0 = Debug|Any CPU
 		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Release|x64.ActiveCfg = Release|Any CPU
+		{5C021EB8-70A5-4884-AD9F-C0F6EA75876C}.Release|x64.Build.0 = Release|Any CPU
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Debug|x64.ActiveCfg = Debug|x64
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Debug|x64.Build.0 = Debug|x64
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Release|x64.ActiveCfg = Release|x64
+		{63DF4BAC-57B3-4EA2-9749-D2CFA89216FB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

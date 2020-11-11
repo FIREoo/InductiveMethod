@@ -32,32 +32,33 @@ namespace Wpf_InductiveMethod
     /// </summary>
     public partial class MainWindow : Window
     {
+
         public MainWindow()
         {
             InitializeComponent();
             LV_trajectoryInfo.ItemsSource = TrajectoryInfoDataCollection;
         }
-        List<int> objectLayerKey = new List<int>();
+        ObservableCollection<TrajectoryInfoData> TrajectoryInfoDataCollection = new ObservableCollection<TrajectoryInfoData>();
+
         private void ImageUpdate()
         {
-            mat.SetTo(new byte[600 * 600 * 3]);
-            demoTask.drawObjectOn(mat, objectLayerKey);
+            MyInvoke.setToZero(ref mat);
+            //mat.SetTo(new byte[600 * 600 * 3]);
+            MyInvoke.AddLayer(mat, mat_layer_drag);
+            demoTask?.drawObjectOn(mat, objectLayerKey);
             image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
 
-       // int thisSegmentObj = -1;
-     //   int handingObject = -1;
 
-        ObservableCollection<TrajectoryInfoData> TrajectoryInfoDataCollection = new ObservableCollection<TrajectoryInfoData>();
-        //List<string[]> LVinfo = new List<string[]>();//我不知道怎麼取得 select listView text，所以用這個存
-
+        List<int> objectLayerKey = new List<int>();
         Mat mat = new Mat(600, 600, DepthType.Cv8U, 3);
+        Mat mat_layer_drag = new Mat(600, 600, DepthType.Cv8U, 3);
         int nowGeneration = 0;
         int nowSegment = 0;
         DemoTask demoTask;
         private void Button_start_Click(object sender, RoutedEventArgs e)
         {//start new task
-
+            ClearBoard();
             //initial
             List<InteractObject> demoObject = new List<InteractObject>();
             demoObject.Add(new InteractObject(0));
@@ -82,7 +83,7 @@ namespace Wpf_InductiveMethod
             tb_GenNum.Text = "Now Gen : " + nowGeneration.ToString();
             tb_SegNum.Text = "Now Seg : " + nowSegment.ToString();
 
-            rndObject();
+            demoTask.environment.RandomPos(50, 500, 50, 500);
             ImageUpdate();
         }
 
@@ -126,22 +127,16 @@ namespace Wpf_InductiveMethod
             pick_center_diff_y = (int)e.GetPosition(image1).Y - demoTask.environment.DemoObject[handingObject].Position.Y;
 
 
-            ////確認是否跟上一次一樣，一樣就繼續，不一樣代表要換segment
-            //if (thisSegmentObj != -1 && thisSegmentObj != demoTask.environment.DemoObject[handingObject].index)
-            //{
-            //    Btn_nextSegment_Click(null, null);
-            //}
-
             if (demoTask.environment.thisSegObjectIndex == -1 || demoTask.environment.thisSegObjectIndex == handingObject)//首次拿取 OR 拿到一樣的，繼續
             {
-                demoTask.environment.Pick(handingObject);
+                demoTask.environment.PickUp(handingObject);
                 demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[handingObject].Position);
             }
             else
             {
                 //換東西拿
                 Btn_nextSegment_Click(null, null);
-                demoTask.environment.Pick(handingObject);
+                demoTask.environment.PickUp(handingObject);
                 demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[handingObject].Position);
             }
 
@@ -164,6 +159,8 @@ namespace Wpf_InductiveMethod
             demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Position = new Point((int)P.X, (int)P.Y);
             demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Position);
 
+            var color = demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Color;
+            CvInvoke.Circle(mat_layer_drag, demoTask.environment.DemoObject[demoTask.environment.handingObjectIndex].Position, 1, color);
             ImageUpdate();//放這裡，拖拉時浪費效能，但沒事時省效能
         }
         private void Image1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -179,47 +176,30 @@ namespace Wpf_InductiveMethod
                 throw new Exception("handingObjectIndex != thisSegObjectIndex\nshould already commited this segment");
 
             demoTask.environment.thisSegPath.Add(demoTask.environment.DemoObject[demoTask.environment.thisSegObjectIndex].Position);
-            demoTask.environment.Place(demoTask.environment.handingObjectIndex);
+            demoTask.environment.PlaceDown(demoTask.environment.handingObjectIndex);
 
             demoTask.environment.handingObjectIndex = -1;
             ImageUpdate();
         }
         private void Btn_abortThisDemoPath_Click(object sender, RoutedEventArgs e)
         {
-            demoTask.environment.Place();
-            demoTask.environment.thisSegPath.Clear();
-
-            //foreach (InteractObject obj in demoTask.environment.DemoObject)
-            //{
-            //    obj.place();
-            //    obj.thisRoundPath.Clear();
-            //    obj.thisRoundPath.Add(obj.Position);
-            //}
+            demoTask.environment.AbortThisSeg();
+            ClearBoard();
         }
         private void Btn_resetPos_Click(object sender, RoutedEventArgs e)
         {
-            rndObject();
-            ImageUpdate();
+            demoTask.environment.AbortThisSeg();
+            demoTask.environment.RandomPos(50, 500, 50, 500);
+            ClearBoard();
         }
-        private void rndObject()
-        {
-            Random rnd = new Random();
-            foreach (InteractObject obj in demoTask.environment.DemoObject)
-            {
-                obj.Position = new Point(rnd.Next(50, 550), rnd.Next(50, 550));
-                //obj.place();
-                //obj.thisRoundPath.Clear();
-                ////obj.thisRoundObjectIndex = -1;
-                ////初始點 也要算一個，因為有可能初始點就剛好是我要的絕對位置
-                //obj.thisRoundPath.Add(obj.Position);
-            }
-        }
+      
 
         #endregion \\---Environment---//
 
         #region //---nextStage---\\
         private void Btn_nextSegment_Click(object sender, RoutedEventArgs e)
         {
+            ClearBoard();
             demoTask.ConfirmSegment(demoTask.environment.thisSegObjectIndex);
 
             //add listView UI
@@ -241,6 +221,7 @@ namespace Wpf_InductiveMethod
         }
         private void Btn_nextGeneration_Click(object sender, RoutedEventArgs e)
         {
+            ClearBoard();
             demoTask.ConfirmSegment(demoTask.environment.thisSegObjectIndex);
 
             //add listView UI
@@ -261,7 +242,7 @@ namespace Wpf_InductiveMethod
             tb_GenNum.Text = "Now Gen : " + nowGeneration.ToString();
             nowSegment = 0;
             tb_SegNum.Text = "Now Seg : " + nowSegment.ToString();
-            rndObject();
+            demoTask.environment.RandomPos(50, 500, 50, 500);
             ImageUpdate();
         }
         #endregion \\---nextStage---//
@@ -311,21 +292,32 @@ namespace Wpf_InductiveMethod
             }
             image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
+        private void ClearBoard()
+        {
+            MyInvoke.setToZero(ref mat);
+            MyInvoke.setToZero(ref mat_layer_drag);
+            ImageUpdate();
+        }
         private void Btn_clearImage_Click(object sender, RoutedEventArgs e)
         {
-            mat.SetTo(new byte[600 * 600 * 3]);
-            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
+            ClearBoard();
         }
         private void But_clearPath_Click(object sender, RoutedEventArgs e)
         {
-            mat.SetTo(new byte[600 * 600 * 3]);
-            ImageUpdate();
-            image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
+            ClearBoard();
         }
         #endregion \\---draw replat Path---//
 
+        int absToleranceRange =30;
+        int relToleranceRange = 20;
+        int ignoreStartValue = 5;
         private void Btn_InductiveSegment_Click(object sender, RoutedEventArgs e)
         {
+            //按下 開始計算 ，就不要這次路徑了
+            demoTask.environment.AbortThisSeg();
+            ClearBoard();
+
+           
             demoTask.ZeroAllKeys();
             int segmentIndex = 0;
             for (; segmentIndex < demoTask.generations[0].segments.Count(); segmentIndex++)
@@ -336,17 +328,21 @@ namespace Wpf_InductiveMethod
                     CompareTwoTrajectory(
                         demoTask.generations[0].segments[segmentIndex].AbsoluteTrajectory,
                         demoTask.generations[G].segments[segmentIndex].AbsoluteTrajectory,
-                        20);
+                        absToleranceRange,
+                        ignoreStartValue);
                     //Rel 比較
                     for (int O = 0; O < demoTask.environment.DemoObject.Count(); O++)
                     {
                         CompareTwoTrajectory(
                            demoTask.generations[0].segments[segmentIndex].RelativeTrajectory[O],
                            demoTask.generations[G].segments[segmentIndex].RelativeTrajectory[O],
-                           20);
+                           relToleranceRange,
+                           ignoreStartValue);
                     }
                     //注意!! key path 只存到 generations[0]
                 }
+
+ 
 
                 //draw keyPath on UI
                 int threshold = demoTask.generations.Count() - 2;// 示範完會++ 所以少一，互相比較，所以若N代又要全部都是key 會需要N-1個(比喻:雙循環賽 全贏)
@@ -378,6 +374,11 @@ namespace Wpf_InductiveMethod
                     }
                 }
 
+                if(path.Count() == 0)
+                {
+                    MessageBox.Show("No key path found!");
+                    return;
+                }
                 //draw
                 CvInvoke.Line(mat, demoTask.environment.DemoObject[interactObject].Position, path[0], demoTask.environment.DemoObject[interactObject].Color, 2);
                 for (int i = 1; i < path.Count(); i++)
@@ -385,7 +386,7 @@ namespace Wpf_InductiveMethod
                     CvInvoke.Line(mat, path[i - 1], path[i], demoTask.environment.DemoObject[interactObject].Color, 2);
                 }
             }
-
+           // ImageUpdate();
             image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
 
@@ -432,11 +433,11 @@ namespace Wpf_InductiveMethod
 
             image1.Source = MyInvoke.MatToBitmap(mat); //BitmapSourceConvert.ToBitmapSource(mat);
         }
-        private void CompareTwoTrajectory(Trajectory T0, Trajectory Tc, int distance)
+        private void CompareTwoTrajectory(Trajectory T0, Trajectory Tc, int distance, int ignore = 0)
         {
-            for (int P = 0; P < T0.PathList.Count(); P++)
+            for (int P = ignore; P < T0.PathList.Count(); P++)
             {
-                for (int Pc = 0; Pc < Tc.PathList.Count(); Pc++)//compare with T1
+                for (int Pc = ignore; Pc < Tc.PathList.Count(); Pc++)//compare with T1
                     if (Ex.Distanse(T0.PathList[P], Tc.PathList[Pc]) < distance)//如果T0P0 與 T1Pc0 距離小於   則
                     {
                         T0.PathKeyMatch[P]++;

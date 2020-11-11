@@ -7,7 +7,10 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="800" Width="1159">
     <Grid Margin="0,0,0,0">
-        <ListView x:Name="LV_trajectoryInfo" x:FieldModifier="public" HorizontalAlignment="Left" Height="427" Margin="615,156,0,0" VerticalAlignment="Top" Width="370" FontSize="16">
+        <Grid HorizontalAlignment="Left" Height="600" Margin="10,90,0,0" VerticalAlignment="Top" Width="600" Background="Black">
+            <Image x:Name="image1" HorizontalAlignment="Stretch" Height="auto" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="auto" MouseLeftButtonDown="Image1_MouseLeftButtonDown" MouseLeftButtonUp="Image1_MouseLeftButtonUp" MouseMove="Image1_MouseMove"/>
+        </Grid>
+        <ListView x:Name="LV_trajectoryInfo" x:FieldModifier="public" HorizontalAlignment="Left" Height="427" Margin="630,124,0,0" VerticalAlignment="Top" Width="370" FontSize="16">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -69,22 +72,20 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <Image x:Name="image1" HorizontalAlignment="Left" Height="600" Margin="10,78,0,0" VerticalAlignment="Top" Width="600" MouseLeftButtonDown="Image1_MouseLeftButtonDown" MouseLeftButtonUp="Image1_MouseLeftButtonUp" MouseMove="Image1_MouseMove"/>
-        <Button x:Name="btn_startNewTask" Content="Start New Task" HorizontalAlignment="Left" Margin="10,12,0,0" VerticalAlignment="Top" Width="128" Click="Button_start_Click" Height="41" FontSize="16"/>
-        <Button x:Name="btn_DrawSelect" Content="Draw Select" HorizontalAlignment="Left" Margin="615,113,0,0" VerticalAlignment="Top" Width="185" Height="43" Click="Btn_DrawSelect_Click" FontSize="16" Background="#FFA0D494"/>
-        <Button x:Name="btn_DrawChecked" Content="Draw checked" HorizontalAlignment="Left" Margin="800,113,0,0" VerticalAlignment="Top" Width="117" Height="43" FontSize="16" Click="Btn_DrawChecked_Click" Background="#FFA0D494"/>
-        <Button x:Name="btn_InductiveSegment" Content="InductiveSegment" HorizontalAlignment="Left" Margin="990,241,0,0" VerticalAlignment="Top" Width="144" Height="36" Click="Btn_InductiveSegment_Click" FontSize="16"/>
-        <TextBlock x:Name="tb_GenNum" HorizontalAlignment="Left" Margin="247,55,0,0" TextWrapping="Wrap" Text="Now Gen : 0" VerticalAlignment="Top" FontSize="16"/>
-        <Button x:Name="btn_countKeyPoint" Content="Count key point" HorizontalAlignment="Left" Margin="990,172,0,0" VerticalAlignment="Top" Width="111" Height="43" Click="Btn_countKeyPoint_Click" FontSize="14"/>
-        <Button x:Name="btn_remove" Content="remove" HorizontalAlignment="Left" Margin="996,413,0,0" VerticalAlignment="Top" Width="74" Click="Btn_remove_Click" Height="43"/>
-        <Button x:Name="but_clearPath" Content="Clear Path" HorizontalAlignment="Left" Margin="171,683,0,0" VerticalAlignment="Top" Width="144" Height="43" Click="But_clearPath_Click"/>
-        <Label Content="notice that one gen one object" HorizontalAlignment="Left" Margin="615,622,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btn_clearImage" Content="Clear Image" HorizontalAlignment="Left" Margin="10,683,0,0" VerticalAlignment="Top" Width="156" Height="43" Click="Btn_clearImage_Click"/>
-        <Button x:Name="btn_resetPos" Content="reset position" HorizontalAlignment="Left" Margin="138,12,0,0" VerticalAlignment="Top" Width="90" Height="41" Click="Btn_resetPos_Click"/>
-        <Button x:Name="btn_nextSegment" Content="Next Segment" HorizontalAlignment="Left" Margin="360,12,0,0" VerticalAlignment="Top" Width="122" Height="43" Click="Btn_nextSegment_Click" Background="#FFE8CFAA"/>
-        <Button x:Name="btn_nextGeneration" Content="Next Generation" HorizontalAlignment="Left" Margin="233,12,0,0" VerticalAlignment="Top" Width="122" Height="43" Click="Btn_nextGeneration_Click" Background="#FF77C1FF"/>
-        <TextBlock x:Name="tb_SegNum" HorizontalAlignment="Left" Margin="379,55,0,0" TextWrapping="Wrap" Text="Now Seg : 0" VerticalAlignment="Top" FontSize="16"/>
-        <Button x:Name="Btn_abortThisDemoPath" Content="Abandon This Demo Path" HorizontalAlignment="Left" Margin="487,12,0,0" VerticalAlignment="Top" Width="168" Height="43" Click="Btn_abortThisDemoPath_Click" Background="#FF9C9A9A"/>
+        <Button x:Name="btn_startNewTask" Content="Start New Task" HorizontalAlignment="Left" Margin="10,12,0,0" VerticalAlignment="Top" Width="123" Click="Button_start_Click" Height="41" FontSize="16"/>
+        <Button x:Name="btn_DrawSelect" Content="Draw Select" HorizontalAlignment="Left" Margin="630,81,0,0" VerticalAlignment="Top" Width="185" Height="43" Click="Btn_DrawSelect_Click" FontSize="16" Background="#FFA0D494"/>
+        <Button x:Name="btn_DrawChecked" Content="Draw checked" HorizontalAlignment="Left" Margin="815,81,0,0" VerticalAlignment="Top" Width="117" Height="43" FontSize="16" Click="Btn_DrawChecked_Click" Background="#FFA0D494"/>
+        <Button x:Name="btn_InductiveSegment" Content="InductiveSegment" HorizontalAlignment="Left" Margin="1005,209,0,0" VerticalAlignment="Top" Width="144" Height="36" Click="Btn_InductiveSegment_Click" FontSize="16"/>
+        <TextBlock x:Name="tb_GenNum" HorizontalAlignment="Left" Margin="231,55,0,0" TextWrapping="Wrap" Text="Now Gen : 0" VerticalAlignment="Top" FontSize="18" FontWeight="Bold"/>
+        <Button x:Name="btn_countKeyPoint" Content="Count key point" HorizontalAlignment="Left" Margin="1005,140,0,0" VerticalAlignment="Top" Width="111" Height="43" Click="Btn_countKeyPoint_Click" FontSize="14"/>
+        <Button x:Name="btn_remove" Content="remove" HorizontalAlignment="Left" Margin="1011,381,0,0" VerticalAlignment="Top" Width="74" Click="Btn_remove_Click" Height="43"/>
+        <Button x:Name="but_clearPath" Content="Clear Path" HorizontalAlignment="Left" Margin="171,700,0,0" VerticalAlignment="Top" Width="144" Height="43" Click="But_clearPath_Click"/>
+        <Button x:Name="btn_clearImage" Content="Clear Image" HorizontalAlignment="Left" Margin="10,700,0,0" VerticalAlignment="Top" Width="156" Height="43" Click="Btn_clearImage_Click"/>
+        <Button x:Name="btn_resetPos" Content="reset position" HorizontalAlignment="Left" Margin="133,12,0,0" VerticalAlignment="Top" Width="83" Height="41" Click="Btn_resetPos_Click"/>
+        <Button x:Name="btn_nextSegment" Content="Next Segment" HorizontalAlignment="Left" Margin="348,12,0,0" VerticalAlignment="Top" Width="119" Height="43" Click="Btn_nextSegment_Click" Background="#FFE8CFAA"/>
+        <Button x:Name="btn_nextGeneration" Content="Next Generation" HorizontalAlignment="Left" Margin="221,12,0,0" VerticalAlignment="Top" Width="122" Height="43" Click="Btn_nextGeneration_Click" Background="#FF77C1FF"/>
+        <TextBlock x:Name="tb_SegNum" HorizontalAlignment="Left" Margin="354,55,0,0" TextWrapping="Wrap" Text="Now Seg : 0" VerticalAlignment="Top" FontSize="18" FontWeight="Bold"/>
+        <Button x:Name="Btn_abortThisDemoPath" Content="Abandon This Demo Path" HorizontalAlignment="Left" Margin="332,700,0,0" VerticalAlignment="Top" Width="278" Height="43" Click="Btn_abortThisDemoPath_Click" Background="#FF9C9A9A"/>
 
     </Grid>
 </Window>

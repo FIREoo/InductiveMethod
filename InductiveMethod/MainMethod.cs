@@ -14,11 +14,11 @@ namespace InductiveMethod
 {
     public class DemoTask
     {
-        /// <summary>Generations of Task</summary>
+        /// <summary>environment of Task, including InteractObject</summary>
         public Environment environment;// = new Environment();
+        /// <summary>Generations of Task</summary>
         public List<Generation> generations = new List<Generation>();
-        /// <summary>Demo objects</summary>
-       // public List<InteractObject> DemoObject { get; } = new List<InteractObject>();
+
         public DemoTask(List<InteractObject> demoObject, bool isPointer = true)
         {
             environment = new Environment(demoObject, isPointer);
@@ -68,12 +68,19 @@ namespace InductiveMethod
             //相對路徑 都只管interact object 的路徑 只是以不同物件為原點
             for (int i = 0; i < environment.DemoObject.Count(); i++)
             {
-                for (int p = 0; p < environment.thisSegPath.Count(); p++)
-                {
-                    //要以自己起始點為原點  不能是自己的終點
-                    Point Pr = new Point(environment.thisSegPath[p].X - environment.DemoObject[i].Position.X, environment.thisSegPath[p].Y - environment.DemoObject[i].Position.Y);
-                    addin.RelativeTrajectory[i].AddPoint(Pr);
-                }
+                if (i == environment.thisSegObjectIndex)//如果是自己就跟 自己的原點比
+                    for (int p = 0; p < environment.thisSegPath.Count(); p++)
+                    {
+                        //要以自己起始點為原點  不能是自己的終點，所以不能是environment.DemoObject[i].Position
+                        Point Pr = new Point(environment.thisSegPath[p].X - environment.thisSegPath[0].X, environment.thisSegPath[p].Y - environment.thisSegPath[0].Y);
+                        addin.RelativeTrajectory[i].AddPoint(Pr);
+                    }
+                else//其他的 因為不會動，所以就跟目前位置做比較就可以了
+                    for (int p = 0; p < environment.thisSegPath.Count(); p++)
+                    {
+                        Point Pr = new Point(environment.thisSegPath[p].X - environment.DemoObject[i].Position.X, environment.thisSegPath[p].Y - environment.DemoObject[i].Position.Y);
+                        addin.RelativeTrajectory[i].AddPoint(Pr);
+                    }
             }
 
             //清除 thisRoundPath
@@ -124,25 +131,42 @@ namespace InductiveMethod
         /// <summary>The Object witch is on hand (null = -1)</summary>
         public int handingObjectIndex = -1;
 
-        public void Pick(int objectIndex)
+        public void AbortThisSeg()
+        {
+            thisSegPath.Clear();
+            PlaceDown();
+        }
+        public void RandomPos(int x0,int x1,int y0,int y1)
+        {
+            Random rnd = new Random();
+            foreach (InteractObject obj in DemoObject)
+            {
+                obj.Position = new Point(rnd.Next(x0, x1), rnd.Next(y0, y1));
+            }
+        }
+
+        public void PickUp(int objectIndex)
         {
             DemoObject[objectIndex].pick();
             handingObjectIndex = objectIndex;
             thisSegObjectIndex = objectIndex;
         }
-        public void Place(int objectIndex)
+        public void PlaceDown(int objectIndex)
         {
             DemoObject[objectIndex].place();
             handingObjectIndex = -1;
         }
-        public void Place()
+        public void PlaceDown()
         {
             if (handingObjectIndex == -1)//本來就沒拿東西。
                 return;
             foreach (InteractObject io in DemoObject)
                 io.place();
             handingObjectIndex = -1;
+
         }
+
+
     }
 
     public class Generation
@@ -260,24 +284,6 @@ namespace InductiveMethod
 
     }
 
-    /*public class ObjectTrajectoryPack
-    {
-        public int OriginObjectIndex = -1;
-        public int InteractObjectIndex = -1;
-
-        public ObjectTrajectoryPack(int originIndex, int interactObjectIndex)
-        {
-            OriginObjectIndex = originIndex;
-            InteractObjectIndex = interactObjectIndex;
-        }
-        //abs 與 rel path count 相等
-        public Trajectory AbsoluteTrajectory = new Trajectory();
-        public Trajectory RelativeTrajectory = new Trajectory();
-        public int PathCount()
-        {
-            return AbsoluteTrajectory.PathList.Count();
-        }
-    }*/
     public class Trajectory
     {
         public List<Point> PathList = new List<Point>();
@@ -345,3 +351,4 @@ namespace InductiveMethod
         }
     }
 }
+ 
