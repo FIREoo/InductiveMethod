@@ -1,0 +1,3 @@
+[submodule "myEmguTools"]
+	path = myEmguTools
+	url = git@github.com:FIREoo/myEmguTools.git
